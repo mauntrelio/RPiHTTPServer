@@ -1,0 +1,5 @@
+.conf
+*.py[cod]
+
+.buildinfo
+.idea/*
