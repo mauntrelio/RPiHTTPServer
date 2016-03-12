@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Configurable HTTP base class build on top of Python standard library's
+"""HTTP server eand request handler built on top of Python standard library's 
 BaseHTTPServer.
 Originally intended for Raspberry Pi projects with a web interface, the small 
 web server and associated request handler add some interesting features to 
