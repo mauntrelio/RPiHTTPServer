@@ -1,5 +1,8 @@
 .conf
 *.py[cod]
-
 .buildinfo
 .idea/*
+dist
+build
+*.egg-info
+
