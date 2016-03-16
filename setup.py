@@ -8,7 +8,7 @@ setup(
   name='RPiHTTPServer',
   author='Maurizio Manetti',
   author_email='maurizio@imanetti.net',
-  version='0.0.1',
+  version='0.0.1a',
   url='http://github.com/mauntrelio/RPiHTTPServer',
   description='HTTP server eand request handler '
               'built on top of BaseHTTPServer '

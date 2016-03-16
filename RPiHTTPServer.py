@@ -18,7 +18,7 @@ Features:
 
 """
 
-__version__ = "0.0.1"
+__version__ = "0.0.1a"
 
 __all__ = ["RPiHTTPRequestHandler", "RPiHTTPServer"]
 
@@ -40,7 +40,7 @@ class RPiHTTPRequestHandler(BaseHTTPRequestHandler):
 
   # class initialization
 
-  server_version = "RPiHTTPServer 0.0.1"
+  server_version = "RPiHTTPServer 0.0.1a"
 
   # mimetypes for static files
   if not mimetypes.inited:
@@ -48,33 +48,30 @@ class RPiHTTPRequestHandler(BaseHTTPRequestHandler):
   extensions_map = mimetypes.types_map.copy()    
 
   def __init__(self, *args):
-    # TODO: handle different charset
     self.content = ""
+    # TODO: handle different charset
     self.content_type = "text/html; charset=UTF-8"
     self.response_status = 200
     self.response_headers = {}
     BaseHTTPRequestHandler.__init__(self, *args)
 
-  def parse_QS(self):
-    """Parse Query String"""
-    self.url = cgi.urlparse.urlparse(self.path)
-    self.qs = cgi.urlparse.parse_qs(self.url.query)
-
   def do_GET(self):
     """Process GET requests"""
-    self.parse_QS()
     self.handle_request()
 
   def do_POST(self):
     """Process POST requests"""
-    self.parse_QS()
-    self.form = cgi.FieldStorage(
-      fp=self.rfile, 
-      headers=self.headers,
-      environ={
-             'REQUEST_METHOD':'POST',
-             'CONTENT_TYPE':self.headers['Content-Type']
-             }) 
+    # parse form
+    # TODO: parse file upload
+    self.form = {}
+    if 'content-type' in self.headers:
+      self.form = cgi.FieldStorage(
+        fp=self.rfile, 
+        headers=self.headers,
+        environ={
+               'REQUEST_METHOD':'POST',
+               'CONTENT_TYPE':self.headers['Content-Type']
+               }) 
     self.handle_request()
 
   def get_safe_param(self, param, charset='utf-8'):
@@ -88,38 +85,48 @@ class RPiHTTPRequestHandler(BaseHTTPRequestHandler):
       
   def handle_request(self):
     """Process generic requests"""
+
+    # init some useful properties
+    self.config = self.server.config # access config shorter
+    self.request_xhr = 'x-requested-with' in self.headers # request is xhr?
+    self.url = cgi.urlparse.urlparse(self.path) # parse url
+    self.qs = cgi.urlparse.parse_qs(self.url.query) # parse query string
+
     # serve static content first 
-    if self.url.path.startswith(self.server.config.STATIC_URL_PREFIX):
+    if self.url.path.startswith(self.config.STATIC_URL_PREFIX):
       if self.command == 'POST':
         # POST not allowed on static content
         self.send_error(405,"Method not allowed")
       else:
         self.serve_static()
-    else:
+    else:      
       # manage routed requests with controller methods
       self.handle_routed_request()
   
   def handle_routed_request(self):
     """Handle request with a method of the class: 
     the method needs to be actually implemented in the final class"""
-
-    routing = self.server.config.ROUTE[self.command]
-    route_key = self.url.path.strip("/")
-    if route_key in routing:
-      controller = routing[route_key]
+    if self.command in self.config.ROUTE:
+      routing = self.config.ROUTE[self.command]
+    else:
+      routing = None
+    if routing and self.url.path in routing:
+      controller = routing[self.url.path]
     else:
       # by default look for a controller method named as the requested path
       # prefixed by "routed_"
       # /controller => self.routed_controller()
-      controller = "routed_" + route_key  
+      # TODO: sanitize path
+      controller = "routed_" + self.url.path.strip("/")  
     # call instance method mapped by the route or give 404 if not such a method
     controller_method = getattr(self, controller, None)
     if controller_method:
       controller_method()
+      # TODO: improve way to shortcut answer in the controller
       if self.response_status == 200:
         self.serve_response()
     else:
-      self.give_404()  
+      self.give_404()
 
   def default_response(self):
     """Default response for test purposes"""
@@ -156,11 +163,11 @@ class RPiHTTPRequestHandler(BaseHTTPRequestHandler):
 
   def translate_path(self):
     """Translate URL path to file system path"""
-    # for the time being we just remove tre prefix url and prepend file system static folder
+    # for the time being we just remove the prefix url and prepend file system static folder
     url_path = self.url.path
-    prefix = self.server.config.STATIC_URL_PREFIX
+    prefix = self.config.STATIC_URL_PREFIX
     url_path_unprefix = url_path[url_path.startswith(prefix) and len(prefix):] 
-    return self.server.config.STATIC_FOLDER + url_path_unprefix
+    return self.config.STATIC_FOLDER + url_path_unprefix
   
   def serve_static(self):
     """Handle static files requests taking into account
@@ -189,7 +196,7 @@ class RPiHTTPRequestHandler(BaseHTTPRequestHandler):
         fs = os.fstat(f.fileno())
         self.send_header("Content-Length", str(fs[6]))
         self.send_header("Last-Modified", self.date_time_string(fs.st_mtime))
-        self.send_header("Expires", self.date_time_string(time.time()+self.server.config.STATIC_CACHE))
+        self.send_header("Expires", self.date_time_string(time.time()+self.config.STATIC_CACHE))
         self.end_headers()
         shutil.copyfileobj(f, self.wfile)
       else:
@@ -247,6 +254,7 @@ class TestHandler(RPiHTTPRequestHandler):
     </html>""" % (post_param,post_param)
 
 class configClass:
+  """Transform a dictonary in an object"""
   def __init__(self, **entries):
     self.__dict__.update(entries)
 
@@ -305,10 +313,10 @@ class RPiHTTPServer:
         "STATIC_CACHE": 604800,
         "ROUTE": { # basic dynamic routing
           "GET": {
-            "": "default_response",
+            "/": "default_response",
           },
           "POST": {
-            "": "default_response",
+            "/": "default_response",
           }
         }
       }
