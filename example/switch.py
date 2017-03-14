@@ -7,7 +7,7 @@ import os
 class OnOffHandler(RPiHTTPRequestHandler):
 
   # GET /
-  def home(self):
+  def default_response(self):
     """Home page: only render template"""
     self.render_template()
 

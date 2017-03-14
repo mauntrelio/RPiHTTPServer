@@ -18,7 +18,7 @@ Features:
 
 """
 
-__version__ = "0.0.1a"
+__version__ = "0.0.1"
 
 __all__ = ["RPiHTTPRequestHandler", "RPiHTTPServer"]
 
@@ -40,7 +40,7 @@ class RPiHTTPRequestHandler(BaseHTTPRequestHandler):
 
   # class initialization
 
-  server_version = "RPiHTTPServer 0.0.1a"
+  server_version = "RPiHTTPServer 0.0.1"
 
   # mimetypes for static files
   if not mimetypes.inited:
@@ -280,16 +280,22 @@ class RPiHTTPServer:
 
   # TODO: 
   # - handle config file parse error
-  # - merge config with default config for possible missing but needed config params
 
   def __init__(self, config_file = '', request_handler = RPiHTTPRequestHandler):
 
-    if os.path.isfile(config_file):
-      config = json.load(open(config_file,'r'))
-    else:
-      # default config
-      config = self.default_config()
+    # default config
+    config_start = self.default_config()
 
+    # config from file
+    config_load = {}
+    if os.path.isfile(config_file):
+      config_load = json.load(open(config_file,'r'))
+    
+    # merge default config with config from file
+    config = config_start.copy()
+    config.update(config_load)
+
+    # transform config dictionary in an object
     config = configClass(**config)
 
     if config.SERVER_MULTITHREADED:

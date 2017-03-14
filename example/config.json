@@ -7,7 +7,7 @@
   "STATIC_CACHE" : 604800,
   "ROUTE": { 
     "GET": {
-      "/": "home"
+      "/": "default_response"
     },
     "POST": {
       "/": "switch"
