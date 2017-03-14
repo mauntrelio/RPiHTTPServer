@@ -5,8 +5,8 @@ pandoc.core.PANDOC_PATH = '/usr/bin/pandoc'
 
 doc = pandoc.Document()
 doc.markdown = open('README.md').read()
-f = open('README.txt','w+')
+f = open('README.rst','w+')
 f.write(doc.rst)
 f.close()
-os.system("setup.py register")
-os.remove('README.txt')
+os.system("python setup.py register sdist upload")
+os.remove('README.rst')
