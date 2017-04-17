@@ -30,8 +30,8 @@ served over HTTP.
 class MyHandler(RPiHTTPRequestHandler):
   def routed_whatever:
   # your method definition to serve http://<my_address>:<my_port>/whatever
-  # do cool stuff
-  	self.content = "<html><body>whatever</body></html>"
+    # do cool stuff
+    self.content = "<html><body>whatever</body></html>"
 
 MyServer = RPiHTTPServer(path_to_config_file, MyHandler)
 MyServer.serve_forever()
@@ -89,7 +89,7 @@ leave the default "STATIC_URL_PREFIX" and you have an image named "foo.png"
 directly under the configured "STATIC_FOLDER", this will be served via HTTP
 under
 
-	http://<your_server_address>:<your_port>/static/foo.png
+  http://<your_server_address>:<your_port>/static/foo.png
 
 ### Python script
 
@@ -119,9 +119,9 @@ class MyHandler(RPiHTTPRequestHandler):
     # DO something cool, e.g.: GPIO.output(self.config.GPIO_PIN, GPIO.HIGH)
     self.content = "<!DOCTYPE html><html><h1>Switch on</h1></html>"
 
-	def routed_switchoff(self):
-		# DO something cool, e.g.: GPIO.output(self.config.GPIO_PIN, GPIO.LOW)
-		self.content = "<!DOCTYPE html><html><h1>Switch off</h1></html>"
+  def routed_switchoff(self):
+    # DO something cool, e.g.: GPIO.output(self.config.GPIO_PIN, GPIO.LOW)
+    self.content = "<!DOCTYPE html><html><h1>Switch off</h1></html>"
 
 MyServer = RPiHTTPServer("/path/to/config.json", MyHandler)
 MyServer.serve_forever()

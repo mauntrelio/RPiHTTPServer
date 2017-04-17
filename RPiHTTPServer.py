@@ -24,7 +24,7 @@ TODOs:
 
 """
 
-__version__ = "0.1.0"
+__version__ = "0.0.3"
 
 __all__ = ["RPiHTTPRequestHandler", "RPiHTTPServer"]
 
@@ -47,7 +47,7 @@ class RPiHTTPRequestHandler(BaseHTTPRequestHandler):
 
   # class initialization
 
-  server_version = "RPiHTTPServer 0.0.2"
+  server_version = "RPiHTTPServer 0.0.3"
 
   # mimetypes for static files
   if not mimetypes.inited:
@@ -350,7 +350,7 @@ class RPiHTTPServer:
   def default_config(self):
     return {
         "SERVER_ADDRESS": "0.0.0.0",
-        "SERVER_PORT": 8000,
+        "SERVER_PORT": 80,
         "SERVER_MULTITHREADED": True,
         "STATIC_URL_PREFIX": '/static',
         "STATIC_FOLDER": os.getcwd() + '/static', # take cwd + '/static' as default

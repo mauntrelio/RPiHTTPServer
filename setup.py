@@ -15,7 +15,7 @@ setup(
   name='RPiHTTPServer',
   author='Maurizio Manetti',
   author_email='maurizio@imanetti.net',
-  version='0.0.2',
+  version='0.0.3',
   url='http://github.com/mauntrelio/RPiHTTPServer',
   long_description=long_description,
   description='HTTP server and request handler '
