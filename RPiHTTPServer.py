@@ -1,24 +1,30 @@
 # -*- coding: utf-8 -*-
-"""HTTP server eand request handler built on top of Python standard library's 
+"""HTTP server eand request handler built on top of Python standard library's
 BaseHTTPServer.
-Originally intended for Raspberry Pi projects with a web interface, the small 
-web server and associated request handler add some interesting features to 
+Originally intended for Raspberry Pi projects with a web interface, the small
+web server and associated request handler add some interesting features to
 BaseHTTPServer and can be used independently of Raspberry Pi
 
 Features:
 - config in json file
 - optional multithreaded server
 - static file serving with cache
+- basic template rendering
 - POST parsing
 - QS parsing
 - dynamic routing based on configuration or convention
 
-# TODO: improve documentation
-# TODO: python 3k?
+TODOs:
+- support for Python 3k
+- handle config file parse error
+- parametric routes
+- sanitize path in url request
+- handle file upload
+- safely handle non utf-8 chars in POST request
 
 """
 
-__version__ = "0.0.1"
+__version__ = "0.1.0"
 
 __all__ = ["RPiHTTPRequestHandler", "RPiHTTPServer"]
 
@@ -34,22 +40,23 @@ import mimetypes
 import shutil
 import time
 import sys
+import re
 
 class RPiHTTPRequestHandler(BaseHTTPRequestHandler):
   """Base class for Raspberry Pi web based projects"""
 
   # class initialization
 
-  server_version = "RPiHTTPServer 0.0.1"
+  server_version = "RPiHTTPServer 0.1.0"
 
   # mimetypes for static files
   if not mimetypes.inited:
     mimetypes.init() # read system mime.types
-  extensions_map = mimetypes.types_map.copy()    
+  extensions_map = mimetypes.types_map.copy()
 
   def __init__(self, *args):
     self.content = ""
-    # TODO: handle different charset
+    # TODO: handle different charset (is it needed?)
     self.content_type = "text/html; charset=UTF-8"
     self.response_status = 200
     self.response_headers = {}
@@ -66,12 +73,12 @@ class RPiHTTPRequestHandler(BaseHTTPRequestHandler):
     self.form = {}
     if 'content-type' in self.headers:
       self.form = cgi.FieldStorage(
-        fp=self.rfile, 
+        fp=self.rfile,
         headers=self.headers,
         environ={
                'REQUEST_METHOD':'POST',
                'CONTENT_TYPE':self.headers['Content-Type']
-               }) 
+               })
     self.handle_request()
 
   def get_safe_param(self, param, charset='utf-8'):
@@ -82,7 +89,7 @@ class RPiHTTPRequestHandler(BaseHTTPRequestHandler):
       return cgi.escape(self.form[param].value.decode(charset),quote=True)
     else:
       return ''
-      
+
   def handle_request(self):
     """Process generic requests"""
 
@@ -92,24 +99,25 @@ class RPiHTTPRequestHandler(BaseHTTPRequestHandler):
     self.url = cgi.urlparse.urlparse(self.path) # parse url
     self.qs = cgi.urlparse.parse_qs(self.url.query) # parse query string
 
-    # serve static content first 
+    # serve static content first
     if self.url.path.startswith(self.config.STATIC_URL_PREFIX):
       if self.command == 'POST':
         # POST not allowed on static content
         self.send_error(405,"Method not allowed")
       else:
         self.serve_static()
-    else:      
+    else:
       # manage routed requests with controller methods
       self.handle_routed_request()
-  
+
   def handle_routed_request(self):
-    """Handle request with a method of the class: 
+    """Handle request with a method of the class:
     the method needs to be actually implemented in the final class"""
     if self.command in self.config.ROUTE:
       routing = self.config.ROUTE[self.command]
     else:
       routing = None
+    # TODO: implement parametric routes
     if routing and self.url.path in routing:
       controller = routing[self.url.path]
     else:
@@ -117,7 +125,7 @@ class RPiHTTPRequestHandler(BaseHTTPRequestHandler):
       # prefixed by "routed_"
       # /controller => self.routed_controller()
       # TODO: sanitize path
-      controller = "routed_" + self.url.path.strip("/")  
+      controller = "routed_" + self.url.path.strip("/")
     # call instance method mapped by the route or give 404 if not such a method
     controller_method = getattr(self, controller, None)
     if controller_method:
@@ -140,7 +148,7 @@ class RPiHTTPRequestHandler(BaseHTTPRequestHandler):
   def serve_response(self):
     """General handling of non static HTTP response"""
     self.send_response(self.response_status)
-    
+
     if not 'Content-Type' in self.response_headers:
       self.response_headers['Content-Type'] = self.content_type
     if not 'Content-Length' in self.response_headers:
@@ -150,25 +158,39 @@ class RPiHTTPRequestHandler(BaseHTTPRequestHandler):
       self.send_header(header_name, header_value)
 
     self.end_headers()
-    self.wfile.write(self.content)  
+    self.wfile.write(self.content)
 
   def send_error(self, code, message):
     self.response_status = code
     BaseHTTPRequestHandler.send_error(self, code, message)
 
-  def give_404(self):
-    self.send_error(404,"Not found")
+  def give_404(self,message="Not found"):
+    self.send_error(404,message)
 
-  # HANDLE STATIC CONTENT 
+  # very basic template rendering: tpl_vars should be a
+  # dictionay whose keys are the strings to be replaced
+  # and whose values are the replacements. There are many
+  # better libraries out there (e.g. Jinja2, Pystache)
+  def render_template(self, template, tpl_vars):
+    tpl = os.path.join(self.config.TEMPLATE_FOLDER, template)
+    if os.path.isfile(tpl):
+      tpl_content = open(tpl,"r").read()
+      pattern = re.compile('|'.join(tpl_vars.keys()))
+      self.content = pattern.sub(lambda x: tpl_vars[x.group()], tpl_content)
+    else:
+      self.give_404("Template missing")
+
+
+  # HANDLE STATIC CONTENT
 
   def translate_path(self):
     """Translate URL path to file system path"""
-    # for the time being we just remove the prefix url and prepend file system static folder
+    # very basic: we just remove the prefix url and prepend file system static folder
     url_path = self.url.path
     prefix = self.config.STATIC_URL_PREFIX
-    url_path_unprefix = url_path[url_path.startswith(prefix) and len(prefix):] 
+    url_path_unprefix = url_path[url_path.startswith(prefix) and len(prefix):]
     return self.config.STATIC_FOLDER + url_path_unprefix
-  
+
   def serve_static(self):
     """Handle static files requests taking into account
     HTTP headers last-modified and if-modified-since"""
@@ -233,7 +255,12 @@ class TestHandler(RPiHTTPRequestHandler):
     This is UTF-8 text (àèìòù €)<br><br>
     Query string: %s<br><br>
     <form action="/testpost" method="POST">
-    <input name="post_param"> <input type="submit">
+    Post param: <input name="post_param"><br>
+    Post param array 1 (first element): <input name="param_array"><br>
+    Post param array 1 (second element): <input name="param_array"><br>
+    Post param array 2 (first element): <input name="param[]"><br>
+    Post param array 2 (second element): <input name="param[]"><br>
+    <input type="submit">
     </form>
     </html>""" % self.qs
 
@@ -242,16 +269,27 @@ class TestHandler(RPiHTTPRequestHandler):
       self.send_error(405, "Method not allowed")
       return
 
-    post_param = self.get_safe_param('post_param')
+    # this show how to handle array POST params
+    # see https://docs.python.org/2/library/cgi.html#higher-level-interface
+    post_param = self.form.getfirst('post_param')
+    post_param_a1 = self.form.getlist('param_array')
+    post_param_a2 = self.form.getlist('param[]')
 
     self.content = """<!DOCTYPE html>
     <html>
     <h1>Test POST</h1>
-    Post param: %s<br><br>
+
+    This is UTF-8 text (èìòù €)<br><br>
+
     <form method="POST">
-    <input name="post_param" value="%s"> <input type="submit">
+    Post param: <input name="post_param" value="%s"><br>
+    Post param array 1 (first element): <input name="param_array" value="%s"><br>
+    Post param array 1 (second element): <input name="param_array" value="%s"><br>
+    Post param array 2 (first element): <input name="param[]" value="%s"><br>
+    Post param array 2 (second element): <input name="param[]" value="%s"><br>
+    <input type="submit">
     </form>
-    </html>""" % (post_param,post_param)
+    </html>""" % (post_param,post_param_a1[0],post_param_a1[1],post_param_a2[0],post_param_a2[1])
 
 class configClass:
   """Transform a dictonary in an object"""
@@ -278,7 +316,7 @@ class RPiHTTPServer:
 
   """
 
-  # TODO: 
+  # TODO:
   # - handle config file parse error
 
   def __init__(self, config_file = '', request_handler = RPiHTTPRequestHandler):
@@ -290,7 +328,7 @@ class RPiHTTPServer:
     config_load = {}
     if os.path.isfile(config_file):
       config_load = json.load(open(config_file,'r'))
-    
+
     # merge default config with config from file
     config = config_start.copy()
     config.update(config_load)
@@ -305,18 +343,19 @@ class RPiHTTPServer:
 
     self.server = server_builder_class((config.SERVER_ADDRESS, config.SERVER_PORT), request_handler)
     self.server.config = config
-  
+
   def serve_forever(self):
     self.server.serve_forever()
 
   def default_config(self):
     return {
         "SERVER_ADDRESS": "0.0.0.0",
-        "SERVER_PORT": 80,
+        "SERVER_PORT": 8000,
         "SERVER_MULTITHREADED": True,
-        "STATIC_URL_PREFIX": '/static', 
-        "STATIC_FOLDER": os.getcwd(), # take cwd as default
+        "STATIC_URL_PREFIX": '/static',
+        "STATIC_FOLDER": os.getcwd() + '/static', # take cwd + '/static' as default
         "STATIC_CACHE": 604800,
+        "TEMPLATE_FOLDER": os.getcwd() + '/templates', # take cwd + '/templates' as default
         "ROUTE": { # basic dynamic routing
           "GET": {
             "/": "default_response",

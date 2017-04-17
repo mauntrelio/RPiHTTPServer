@@ -3,7 +3,6 @@
   "SERVER_PORT": 8080,
   "SERVER_MULTITHREADED": true,
   "STATIC_URL_PREFIX": "/static", 
-  "STATIC_FOLDER": "/var/scripts/example/static",
   "STATIC_CACHE" : 604800,
   "ROUTE": { 
     "GET": {

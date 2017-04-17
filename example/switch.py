@@ -6,29 +6,30 @@ import os
 
 class OnOffHandler(RPiHTTPRequestHandler):
 
+  tpl_vars = { "{{STATUS}}": "ON" }
+
   # GET /
   def default_response(self):
     """Home page: only render template"""
-    self.render_template()
+    self.render_template("home.html",self.tpl_vars)
 
   # POST /
   def switch(self):
     """button pressed: toggle status"""
+
     if self.server.switch_status == 1:
       # if on, switch off
       GPIO.output(self.config.GPIO_PIN, GPIO.LOW)
       self.server.switch_status = 0
+      self.tpl_vars["{{STATUS}}"] = "ON"
+
     else:
       # if off, switch on
-      GPIO.output(self.config.GPIO_PIN, GPIO.HIGH)    
+      GPIO.output(self.config.GPIO_PIN, GPIO.HIGH)
       self.server.switch_status = 1
-    self.render_template()
-      
-  def render_template(self):
-    tpl = os.path.join(self.server.root_folder, 'home.html')
-    tpl_content = open(tpl,"r").read()
-    label = "ON" if self.server.switch_status == 0 else "OFF" 
-    self.content = tpl_content.replace("$STATUS", label) 
+      self.tpl_vars["{{STATUS}}"] = "OFF"
+
+    self.render_template('home.html',self.tpl_vars)
 
 if __name__ == '__main__':
 
@@ -55,4 +56,7 @@ if __name__ == '__main__':
     SwitchServer.serve_forever()
   except KeyboardInterrupt:
     pass
+    # cleanup GPIO status
+    GPIO.output(GPIO_PIN, GPIO.LOW)
+    GPIO.cleanup()
     SwitchServer.server.server_close()

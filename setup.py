@@ -1,6 +1,6 @@
 import os
 
-long_description = """HTTP server and request handler built on top of BaseHTTPServer 
+long_description = """HTTP server and request handler built on top of BaseHTTPServer
 intended for Raspberry Pi projects with a web interface"""
 
 if os.path.exists('README.rst'):
@@ -15,7 +15,7 @@ setup(
   name='RPiHTTPServer',
   author='Maurizio Manetti',
   author_email='maurizio@imanetti.net',
-  version='0.0.1',
+  version='0.1.0',
   url='http://github.com/mauntrelio/RPiHTTPServer',
   long_description=long_description,
   description='HTTP server and request handler '
