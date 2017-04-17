@@ -47,7 +47,7 @@ class RPiHTTPRequestHandler(BaseHTTPRequestHandler):
 
   # class initialization
 
-  server_version = "RPiHTTPServer 0.1.0"
+  server_version = "RPiHTTPServer 0.0.2"
 
   # mimetypes for static files
   if not mimetypes.inited:
