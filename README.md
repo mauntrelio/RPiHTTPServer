@@ -42,7 +42,7 @@ MyServer.serve_forever()
 ```json
 {
   "SERVER_ADDRESS": "0.0.0.0",
-  "SERVER_PORT": 80,
+  "SERVER_PORT": 8000,
   "SERVER_MULTITHREADED": true,
   "STATIC_URL_PREFIX": "/static",
   "STATIC_FOLDER":  "$CWD/static",

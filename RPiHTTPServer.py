@@ -24,7 +24,7 @@ TODOs:
 
 """
 
-__version__ = "0.0.3"
+__version__ = "0.1.0"
 
 __all__ = ["RPiHTTPRequestHandler", "RPiHTTPServer"]
 
@@ -47,7 +47,7 @@ class RPiHTTPRequestHandler(BaseHTTPRequestHandler):
 
   # class initialization
 
-  server_version = "RPiHTTPServer 0.0.3"
+  server_version = "RPiHTTPServer 0.1.0"
 
   # mimetypes for static files
   if not mimetypes.inited:
@@ -55,13 +55,17 @@ class RPiHTTPRequestHandler(BaseHTTPRequestHandler):
   extensions_map = mimetypes.types_map.copy()
 
   def __init__(self, *args):
+
+    # default properties
+    self.content_type = "text/html; charset=UTF-8" # Only UTF-8 is supported
     self.content = ""
-    # TODO: handle different charset (is it needed?)
-    self.content_type = "text/html; charset=UTF-8"
     self.response_status = 200
     self.response_headers = {}
+    self.form = {}
+    
+    # init parent class
     BaseHTTPRequestHandler.__init__(self, *args)
-
+    
   def do_GET(self):
     """Process GET requests"""
     self.handle_request()
@@ -69,8 +73,7 @@ class RPiHTTPRequestHandler(BaseHTTPRequestHandler):
   def do_POST(self):
     """Process POST requests"""
     # parse form
-    # TODO: parse file upload
-    self.form = {}
+    # TODO: parse file upload, parse form more robust
     if 'content-type' in self.headers:
       self.form = cgi.FieldStorage(
         fp=self.rfile,
@@ -83,7 +86,6 @@ class RPiHTTPRequestHandler(BaseHTTPRequestHandler):
 
   def get_safe_param(self, param, charset='utf-8'):
     """Safely get a html escaped post param"""
-    # TODO: handle array params
     # TODO: safely handle non utf-8 chars
     if param in self.form:
       return cgi.escape(self.form[param].value.decode(charset),quote=True)
@@ -92,9 +94,8 @@ class RPiHTTPRequestHandler(BaseHTTPRequestHandler):
 
   def handle_request(self):
     """Process generic requests"""
-
-    # init some useful properties
-    self.config = self.server.config # access config shorter
+    # populate useful properties
+    self.config = self.server.config  # access config shorter
     self.request_xhr = 'x-requested-with' in self.headers # request is xhr?
     self.url = cgi.urlparse.urlparse(self.path) # parse url
     self.qs = cgi.urlparse.parse_qs(self.url.query) # parse query string
@@ -265,15 +266,28 @@ class TestHandler(RPiHTTPRequestHandler):
     </html>""" % self.qs
 
   def routed_testpost(self):
-    if self.command != 'POST':
-      self.send_error(405, "Method not allowed")
-      return
+    # if self.command != 'POST':
+    #   self.send_error(405, "Method not allowed")
+    #   return
 
-    # this show how to handle array POST params
-    # see https://docs.python.org/2/library/cgi.html#higher-level-interface
-    post_param = self.form.getfirst('post_param')
-    post_param_a1 = self.form.getlist('param_array')
-    post_param_a2 = self.form.getlist('param[]')
+    if self.form:
+      # this show how to handle array POST params
+      # see https://docs.python.org/2/library/cgi.html#higher-level-interface
+      post_param = self.form.getfirst('post_param')
+      post_param_a1 = self.form.getlist('param_array')
+      post_param_a2 = self.form.getlist('param[]')
+      post_param_a3 = [ self.form.getfirst('param[test][first]') or "", self.form.getfirst('param[test][second]') or "" ]
+
+      params = (post_param,)
+      params = params + (post_param_a1[0] if len(post_param_a1) > 0 else "",)
+      params = params + (post_param_a1[1] if len(post_param_a1) > 1 else "",)
+      params = params + (post_param_a2[0] if len(post_param_a2) > 0 else "",)
+      params = params + (post_param_a2[1] if len(post_param_a2) > 1 else "",)
+      params = params + (post_param_a3[0],)
+      params = params + (post_param_a3[1],)
+
+    else:
+      params = ("",)*7
 
     self.content = """<!DOCTYPE html>
     <html>
@@ -286,10 +300,12 @@ class TestHandler(RPiHTTPRequestHandler):
     Post param array 1 (first element): <input name="param_array" value="%s"><br>
     Post param array 1 (second element): <input name="param_array" value="%s"><br>
     Post param array 2 (first element): <input name="param[]" value="%s"><br>
-    Post param array 2 (second element): <input name="param[]" value="%s"><br>
+    Post param array 2 (second element): <input name="param[]" value="%s"><br>    
+    Post param array 3 (first element): <input name="param[test][first]" value="%s"><br>
+    Post param array 3 (second element): <input name="param[test][second]" value="%s"><br>
     <input type="submit">
     </form>
-    </html>""" % (post_param,post_param_a1[0],post_param_a1[1],post_param_a2[0],post_param_a2[1])
+    </html>""" % tuple(params)
 
 class configClass:
   """Transform a dictonary in an object"""
@@ -350,7 +366,7 @@ class RPiHTTPServer:
   def default_config(self):
     return {
         "SERVER_ADDRESS": "0.0.0.0",
-        "SERVER_PORT": 80,
+        "SERVER_PORT": 8000,
         "SERVER_MULTITHREADED": True,
         "STATIC_URL_PREFIX": '/static',
         "STATIC_FOLDER": os.getcwd() + '/static', # take cwd + '/static' as default
