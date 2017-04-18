@@ -266,9 +266,6 @@ class TestHandler(RPiHTTPRequestHandler):
     </html>""" % self.qs
 
   def routed_testpost(self):
-    # if self.command != 'POST':
-    #   self.send_error(405, "Method not allowed")
-    #   return
 
     if self.form:
       # this show how to handle array POST params
