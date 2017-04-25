@@ -58,6 +58,8 @@ MyServer.serve_forever()
   }
 }
 ```
+Please note: `$CWD` stands for "current working directory".
+
 
 ## Detailed instructions
 
@@ -71,25 +73,27 @@ port the server will try to start listening on port 80).
 Add whatever configuration additional parameter you may need, for instance
 `"GPIO_PIN": 5`.
 
-Leave "ROUTE" like it is for the time being (read more about routes below).
+Leave `"ROUTE"` like it is for the time being (read more about routes below).
 
 ### Static files
 
 If you want to be able to serve static content, such as images, css, fonts,
 javascripts, etc., prepare a folder for such files and put the absolute path in
-the config parameter "STATIC_FOLDER".
+the config parameter `"STATIC_FOLDER"`.
 
-You can serve static content directly from a subdir named "static" under the
+You can serve static content directly from a subdir named `"static"` under the
 directory where your python script is: in such case, just omit the
-"STATIC_FOLDER" parameter in the config file.
+`"STATIC_FOLDER"` parameter in the config file.
 
-The config parameter "STATIC_URL_PREFIX" identifies the virtual path to be
+The config parameter `"STATIC_URL_PREFIX"` identifies the virtual path to be
 prepended in the URL to reach static files from HTTP. So, for instance, if you
-leave the default "STATIC_URL_PREFIX" and you have an image named "foo.png"
-directly under the configured "STATIC_FOLDER", this will be served via HTTP
+leave the default `"STATIC_URL_PREFIX"` and you have an image named "foo.png"
+directly under the configured `"STATIC_FOLDER"`, this will be served via HTTP
 under
 
-  http://<your_server_address>:<your_port>/static/foo.png
+```
+http://<your_server_address>:<your_port>/static/foo.png
+```
 
 ### Python script
 
@@ -103,8 +107,8 @@ will look for the method `routed_switchon` of the request handler class. If the
 method is not available the server will simply give a 404 error.
 
 If you want to specify a custom method for a request, define the method in the
-"ROUTE" config parameter. One method you would like almost certainly define (or
-override) is the `default_response` (request for the ""/"" URL).
+`"ROUTE"` config parameter. One method you would like almost certainly define (or
+override) is the `default_response` (request for the `/` URL).
 
 The mapped method just need to set the `self.content` variable (as a string) and
 such content will be served over HTTP with content type `text/html; charset=UTF-8`
@@ -179,11 +183,11 @@ string.
 This is an extremely simple and inefficient template's handling: there are many
 better libraries out there (e.g. Jinja2, Pystache) if you want a better template
 handling: at the end of the day you have to set the `self.content` variable to
-the string that will be served over HTTP (to serve a default text/html
-  content-type).
+the string that will be served over HTTP (to serve a default `text/html`
+content-type).
 
-Please note that UTF-8 will be served by default and currently I don't plan to
-offer any other charset support.
+Please note that UTF-8 will be served by default and currently other
+character-set support is not planned.
 
 ## TODO
 
@@ -192,4 +196,4 @@ offer any other charset support.
 - parametric routes
 - sanitize path in url request
 - handle file upload
-- safely handle non utf-8 chars in POST request
+- safely handle non UTF-8 chars in POST request
