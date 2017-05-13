@@ -24,7 +24,7 @@ TODOs:
 
 """
 
-__version__ = "0.1.1"
+__version__ = "0.1.2"
 
 __all__ = ["RPiHTTPRequestHandler", "RPiHTTPServer"]
 
@@ -47,7 +47,7 @@ class RPiHTTPRequestHandler(BaseHTTPRequestHandler):
 
   # class initialization
 
-  server_version = "RPiHTTPServer 0.1.0"
+  server_version = "RPiHTTPServer 0.1.2"
 
   # mimetypes for static files
   if not mimetypes.inited:
@@ -360,7 +360,7 @@ class RPiHTTPServer:
   def serve_forever(self):
     self.server.serve_forever()
 
-  def default_config(self):
+  def default_config(self, config_file):
     if os.path.isfile(config_file):
       default_folder = os.path.dirname(config_file)
     else:
