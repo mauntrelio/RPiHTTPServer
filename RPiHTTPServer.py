@@ -24,7 +24,7 @@ TODOs:
 
 """
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 __all__ = ["RPiHTTPRequestHandler", "RPiHTTPServer"]
 
@@ -335,7 +335,7 @@ class RPiHTTPServer:
   def __init__(self, config_file = '', request_handler = RPiHTTPRequestHandler):
 
     # default config
-    config_start = self.default_config()
+    config_start = self.default_config(config_file)
 
     # config from file
     config_load = {}
@@ -361,14 +361,19 @@ class RPiHTTPServer:
     self.server.serve_forever()
 
   def default_config(self):
+    if os.path.isfile(config_file):
+      default_folder = os.path.dirname(config_file)
+    else:
+      default_folder = os.getcwd()
+
     return {
         "SERVER_ADDRESS": "0.0.0.0",
         "SERVER_PORT": 8000,
         "SERVER_MULTITHREADED": True,
         "STATIC_URL_PREFIX": '/static',
-        "STATIC_FOLDER": os.getcwd() + '/static', # take cwd + '/static' as default
+        "STATIC_FOLDER":  os.path.join(default_folder,"static"),
         "STATIC_CACHE": 604800,
-        "TEMPLATE_FOLDER": os.getcwd() + '/templates', # take cwd + '/templates' as default
+        "TEMPLATE_FOLDER": os.path.join(default_folder,"templates"),
         "ROUTE": { # basic dynamic routing
           "GET": {
             "/": "default_response",

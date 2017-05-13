@@ -58,7 +58,7 @@ MyServer.serve_forever()
   }
 }
 ```
-Please note: `$CWD` stands for "current working directory".
+Please note: `$CWD` stands for "current working directory" but it defaults to the directory of the config file if it exists.
 
 
 ## Detailed instructions
