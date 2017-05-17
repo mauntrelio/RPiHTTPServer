@@ -24,7 +24,7 @@ TODOs:
 
 """
 
-__version__ = "0.1.2"
+__version__ = "0.2.0"
 
 __all__ = ["RPiHTTPRequestHandler", "RPiHTTPServer"]
 
@@ -47,7 +47,7 @@ class RPiHTTPRequestHandler(BaseHTTPRequestHandler):
 
   # class initialization
 
-  server_version = "RPiHTTPServer 0.1.2"
+  server_version = "RPiHTTPServer 0.2.0"
 
   # mimetypes for static files
   if not mimetypes.inited:
@@ -101,7 +101,7 @@ class RPiHTTPRequestHandler(BaseHTTPRequestHandler):
     self.qs = cgi.urlparse.parse_qs(self.url.query) # parse query string
 
     # serve static content first
-    if self.url.path.startswith(self.config.STATIC_URL_PREFIX):
+    if self.url.path.startswith(self.config["STATIC_URL_PREFIX"]):
       if self.command == 'POST':
         # POST not allowed on static content
         self.send_error(405,"Method not allowed")
@@ -114,8 +114,8 @@ class RPiHTTPRequestHandler(BaseHTTPRequestHandler):
   def handle_routed_request(self):
     """Handle request with a method of the class:
     the method needs to be actually implemented in the final class"""
-    if self.command in self.config.ROUTE:
-      routing = self.config.ROUTE[self.command]
+    if self.command in self.config["ROUTE"]:
+      routing = self.config["ROUTE"][self.command]
     else:
       routing = None
     # TODO: implement parametric routes
@@ -173,7 +173,7 @@ class RPiHTTPRequestHandler(BaseHTTPRequestHandler):
   # and whose values are the replacements. There are many
   # better libraries out there (e.g. Jinja2, Pystache)
   def render_template(self, template, tpl_vars):
-    tpl = os.path.join(self.config.TEMPLATE_FOLDER, template)
+    tpl = os.path.join(self.config["TEMPLATE_FOLDER"], template)
     if os.path.isfile(tpl):
       tpl_content = open(tpl,"r").read()
       pattern = re.compile('|'.join(tpl_vars.keys()))
@@ -188,9 +188,9 @@ class RPiHTTPRequestHandler(BaseHTTPRequestHandler):
     """Translate URL path to file system path"""
     # very basic: we just remove the prefix url and prepend file system static folder
     url_path = self.url.path
-    prefix = self.config.STATIC_URL_PREFIX
+    prefix = self.config["STATIC_URL_PREFIX"]
     url_path_unprefix = url_path[url_path.startswith(prefix) and len(prefix):]
-    return self.config.STATIC_FOLDER + url_path_unprefix
+    return self.config["STATIC_FOLDER"] + url_path_unprefix
 
   def serve_static(self):
     """Handle static files requests taking into account
@@ -219,7 +219,7 @@ class RPiHTTPRequestHandler(BaseHTTPRequestHandler):
         fs = os.fstat(f.fileno())
         self.send_header("Content-Length", str(fs[6]))
         self.send_header("Last-Modified", self.date_time_string(fs.st_mtime))
-        self.send_header("Expires", self.date_time_string(time.time()+self.config.STATIC_CACHE))
+        self.send_header("Expires", self.date_time_string(time.time()+self.config["STATIC_CACHE"]))
         self.end_headers()
         shutil.copyfileobj(f, self.wfile)
       else:
@@ -304,10 +304,6 @@ class TestHandler(RPiHTTPRequestHandler):
     </form>
     </html>""" % tuple(params)
 
-class configClass:
-  """Transform a dictonary in an object"""
-  def __init__(self, **entries):
-    self.__dict__.update(entries)
 
 class RPiHTTPServer:
   """
@@ -346,15 +342,12 @@ class RPiHTTPServer:
     config = config_start.copy()
     config.update(config_load)
 
-    # transform config dictionary in an object
-    config = configClass(**config)
-
-    if config.SERVER_MULTITHREADED:
+    if config["SERVER_MULTITHREADED"]:
       server_builder_class = ThreadedHTTPServer
     else:
       server_builder_class = HTTPServer
 
-    self.server = server_builder_class((config.SERVER_ADDRESS, config.SERVER_PORT), request_handler)
+    self.server = server_builder_class((config["SERVER_ADDRESS"], config["SERVER_PORT"]), request_handler)
     self.server.config = config
 
   def serve_forever(self):

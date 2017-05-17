@@ -65,10 +65,8 @@ Please note: `$CWD` stands for "current working directory" but it defaults to th
 
 ### Configuration file
 
-Prepare your config file in JSON format following the format of the aforementioned
-default config.
-Any missing key will be replaced by the default (e.g.: if you do not specify the
-port the server will try to start listening on port 80).
+Prepare your config file in JSON format following the format of the aforementioned default config.
+Any missing key will be replaced by the default (e.g.: if you do not specify the port the server will try to start listening on port 80).
 
 Add whatever configuration additional parameter you may need, for instance
 `"GPIO_PIN": 5`.
@@ -89,7 +87,7 @@ The config parameter `"STATIC_URL_PREFIX"` identifies the virtual path to be
 prepended in the URL to reach static files from HTTP. So, for instance, if you
 leave the default `"STATIC_URL_PREFIX"` and you have an image named "foo.png"
 directly under the configured `"STATIC_FOLDER"`, this will be served via HTTP
-under
+at
 
 ```
 http://<your_server_address>:<your_port>/static/foo.png
@@ -107,12 +105,9 @@ will look for the method `routed_switchon` of the request handler class. If the
 method is not available the server will simply give a 404 error.
 
 If you want to specify a custom method for a request, define the method in the
-`"ROUTE"` config parameter. One method you would like almost certainly define (or
-override) is the `default_response` (request for the `/` URL).
+`"ROUTE"` config parameter. One method you would like almost certainly define (or override) is the `default_response` (request for the `/` URL).
 
-The mapped method just need to set the `self.content` variable (as a string) and
-such content will be served over HTTP with content type `text/html; charset=UTF-8`
-(the default mime type).
+The mapped method just need to set the `self.content` variable (as a string) and such content will be served over HTTP with content type `text/html; charset=UTF-8` (the default mime type).
 
 In such scenario, your code could look like this:
 
@@ -120,23 +115,21 @@ In such scenario, your code could look like this:
 class MyHandler(RPiHTTPRequestHandler):
 
   def routed_switchon(self):
-    # DO something cool, e.g.: GPIO.output(self.config.GPIO_PIN, GPIO.HIGH)
+    # DO something cool, e.g.: GPIO.output(self.config["GPIO_PIN"], GPIO.HIGH)
     self.content = "<!DOCTYPE html><html><h1>Switch on</h1></html>"
 
   def routed_switchoff(self):
-    # DO something cool, e.g.: GPIO.output(self.config.GPIO_PIN, GPIO.LOW)
+    # DO something cool, e.g.: GPIO.output(self.config["GPIO_PIN"], GPIO.LOW)
     self.content = "<!DOCTYPE html><html><h1>Switch off</h1></html>"
 
 MyServer = RPiHTTPServer("/path/to/config.json", MyHandler)
 MyServer.serve_forever()
 ```
 
-From the example above it should be clear that you can have access to the config
-parameters via `self.config.PARAMETER_NAME`.
+From the comments in the above example it should be clear that you can have access to the config parameters via `self.config["PARAMETER_NAME"]`.
 You can also add additional properties to the `server` property of the
 RPiHTTPServer instance, thus making them available in the request handler class
-via `self.server.PROPERTY_NAME`. So for instance, referring to the example above
-you could write:
+via `self.server.PROPERTY_NAME`. So for instance, referring to the example above you could write:
 
 ```python
 MyServer = RPiHTTPServer("/path/to/config.json", MyHandler)
@@ -173,7 +166,7 @@ At the current stage the library does not offer support for parametric routes.
 The library does only offer a very basic template handling. The method
 `render_template` of the RPiHTTPRequestHandler class expects a filename and a
 dictionary and set the content to a string. It will look for a file with the
-specified filename under the folder `self.config.TEMPLATE_FOLDER` (if not
+specified filename under the folder `self.config["TEMPLATE_FOLDER"]` (if not
 specified in the config file it will default to a folder named "templates" under
 the directory from which the python script is run). It will then loop the
 dictionary's keys as the strings to be replaced, and the corresponding values as
