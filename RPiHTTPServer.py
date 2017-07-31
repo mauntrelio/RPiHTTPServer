@@ -9,9 +9,10 @@ Features:
 - config in json file
 - optional multithreaded server
 - static file serving with cache
-- basic template rendering
+- Basic authentication (multiple users/roles)
 - POST parsing
 - QS parsing
+- basic template rendering
 - dynamic routing based on configuration or convention
 
 TODOs:
@@ -24,7 +25,7 @@ TODOs:
 
 """
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 __all__ = ["RPiHTTPRequestHandler", "RPiHTTPServer"]
 
@@ -32,6 +33,7 @@ from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
 from SocketServer import ThreadingMixIn
 from calendar import timegm
 from email.utils import parsedate
+from base64 import b64encode
 
 import cgi
 import os
@@ -47,7 +49,7 @@ class RPiHTTPRequestHandler(BaseHTTPRequestHandler):
 
   # class initialization
 
-  server_version = "RPiHTTPServer 0.2.0"
+  server_version = "RPiHTTPServer 0.3.0"
 
   # mimetypes for static files
   if not mimetypes.inited:
@@ -62,7 +64,8 @@ class RPiHTTPRequestHandler(BaseHTTPRequestHandler):
     self.response_status = 200
     self.response_headers = {}
     self.form = {}
-    
+    self.protected_routes = {}
+        
     # init parent class
     BaseHTTPRequestHandler.__init__(self, *args)
     
@@ -84,6 +87,32 @@ class RPiHTTPRequestHandler(BaseHTTPRequestHandler):
                })
     self.handle_request()
 
+  def do_AUTH(self):
+    """Manage authentication when required"""
+    keys = self.protected_routes[self.url.path]
+
+    if 'authorization' in self.headers:
+      if self.headers['Authorization'] in keys: 
+        return True
+    
+    self.response_status = 401
+    self.response_headers["WWW-Authenticate"] = 'Basic realm=\"%s\"' % self.REALM 
+    self.content = "<h1>Authorization required</h1>"
+    return False
+
+  def setup_roles(self):
+    for role in self.config["ROLES"]:
+      key = "Basic " + b64encode("%s:%s" % (role["USERNAME"],role["PASSWORD"]))
+      for route in role["ROUTES"]: 
+        if route in self.protected_routes:
+          self.protected_routes[route].append(key)
+        else:    
+          self.protected_routes[route] = [key]
+    if "REALM" in self.config:
+      self.REALM = self.config["REALM"]
+    else:
+      self.REALM = "Authentication required"   
+
   def get_safe_param(self, param, charset='utf-8'):
     """Safely get a html escaped post param"""
     # TODO: safely handle non utf-8 chars
@@ -99,6 +128,10 @@ class RPiHTTPRequestHandler(BaseHTTPRequestHandler):
     self.request_xhr = 'x-requested-with' in self.headers # request is xhr?
     self.url = cgi.urlparse.urlparse(self.path) # parse url
     self.qs = cgi.urlparse.parse_qs(self.url.query) # parse query string
+
+    # manage base auth roles if needed
+    if "ROLES" in self.config:
+      self.setup_roles()  
 
     # serve static content first
     if self.url.path.startswith(self.config["STATIC_URL_PREFIX"]):
@@ -129,11 +162,15 @@ class RPiHTTPRequestHandler(BaseHTTPRequestHandler):
       controller = "routed_" + self.url.path.strip("/")
     # call instance method mapped by the route or give 404 if not such a method
     controller_method = getattr(self, controller, None)
+
     if controller_method:
-      controller_method()
+      # check if route is a protected route 
+      call_controller = self.do_AUTH() if self.url.path in self.protected_routes else True
       # TODO: improve way to shortcut answer in the controller
-      if self.response_status == 200:
-        self.serve_response()
+      if call_controller: controller_method()
+      
+      self.serve_response()
+    
     else:
       self.give_404()
 
@@ -304,6 +341,12 @@ class TestHandler(RPiHTTPRequestHandler):
     </form>
     </html>""" % tuple(params)
 
+  def test_reserved(self):
+    self.content = """<!DOCTYPE html>
+    <html>
+    <h1>Page with restricted access test</h1>
+    </html>"""
+
 
 class RPiHTTPServer:
   """
@@ -369,7 +412,7 @@ class RPiHTTPServer:
         "TEMPLATE_FOLDER": os.path.join(default_folder,"templates"),
         "ROUTE": { # basic dynamic routing
           "GET": {
-            "/": "default_response",
+            "/": "default_response"
           },
           "POST": {
             "/": "default_response",
