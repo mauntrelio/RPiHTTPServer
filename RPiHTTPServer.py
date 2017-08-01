@@ -64,7 +64,6 @@ class RPiHTTPRequestHandler(BaseHTTPRequestHandler):
     self.response_status = 200
     self.response_headers = {}
     self.form = {}
-    self.protected_routes = {}
         
     # init parent class
     BaseHTTPRequestHandler.__init__(self, *args)
@@ -89,29 +88,19 @@ class RPiHTTPRequestHandler(BaseHTTPRequestHandler):
 
   def do_AUTH(self):
     """Manage authentication when required"""
-    keys = self.protected_routes[self.url.path]
+    keys = self.server.protected_routes[self.url.path]
 
     if 'authorization' in self.headers:
       if self.headers['Authorization'] in keys: 
         return True
     
     self.response_status = 401
-    self.response_headers["WWW-Authenticate"] = 'Basic realm=\"%s\"' % self.REALM 
-    self.content = "<h1>Authorization required</h1>"
+    self.response_headers["WWW-Authenticate"] = 'Basic realm=\"%s\"' % self.server.REALM 
+    self.content = """
+      <h1>Authorization required</h1>
+      <p>You don't have permission to access the requested resource.</p>
+      """
     return False
-
-  def setup_roles(self):
-    for role in self.config["ROLES"]:
-      key = "Basic " + b64encode("%s:%s" % (role["USERNAME"],role["PASSWORD"]))
-      for route in role["ROUTES"]: 
-        if route in self.protected_routes:
-          self.protected_routes[route].append(key)
-        else:    
-          self.protected_routes[route] = [key]
-    if "REALM" in self.config:
-      self.REALM = self.config["REALM"]
-    else:
-      self.REALM = "Authentication required"   
 
   def get_safe_param(self, param, charset='utf-8'):
     """Safely get a html escaped post param"""
@@ -128,10 +117,6 @@ class RPiHTTPRequestHandler(BaseHTTPRequestHandler):
     self.request_xhr = 'x-requested-with' in self.headers # request is xhr?
     self.url = cgi.urlparse.urlparse(self.path) # parse url
     self.qs = cgi.urlparse.parse_qs(self.url.query) # parse query string
-
-    # manage base auth roles if needed
-    if "ROLES" in self.config:
-      self.setup_roles()  
 
     # serve static content first
     if self.url.path.startswith(self.config["STATIC_URL_PREFIX"]):
@@ -165,7 +150,7 @@ class RPiHTTPRequestHandler(BaseHTTPRequestHandler):
 
     if controller_method:
       # check if route is a protected route 
-      call_controller = self.do_AUTH() if self.url.path in self.protected_routes else True
+      call_controller = self.do_AUTH() if self.url.path in self.server.protected_routes else True
       # TODO: improve way to shortcut answer in the controller
       if call_controller: controller_method()
       
@@ -217,7 +202,6 @@ class RPiHTTPRequestHandler(BaseHTTPRequestHandler):
       self.content = pattern.sub(lambda x: tpl_vars[x.group()], tpl_content)
     else:
       self.give_404("Template missing")
-
 
   # HANDLE STATIC CONTENT
 
@@ -341,12 +325,6 @@ class TestHandler(RPiHTTPRequestHandler):
     </form>
     </html>""" % tuple(params)
 
-  def test_reserved(self):
-    self.content = """<!DOCTYPE html>
-    <html>
-    <h1>Page with restricted access test</h1>
-    </html>"""
-
 
 class RPiHTTPServer:
   """
@@ -379,7 +357,10 @@ class RPiHTTPServer:
     # config from file
     config_load = {}
     if os.path.isfile(config_file):
-      config_load = json.load(open(config_file,'r'))
+      try:
+        config_load = json.load(open(config_file,'r'))
+      except:
+        print "Error parsing configuration file, falling back to defaults"
 
     # merge default config with config from file
     config = config_start.copy()
@@ -392,6 +373,22 @@ class RPiHTTPServer:
 
     self.server = server_builder_class((config["SERVER_ADDRESS"], config["SERVER_PORT"]), request_handler)
     self.server.config = config
+    self.server.protected_routes = {}
+    self.setup_auth(config)
+
+  def setup_auth(self, config):
+    if "ROLES" in config:
+      for role in config["ROLES"]:
+        key = "Basic " + b64encode("%s:%s" % (role["USERNAME"],role["PASSWORD"]))
+        for route in role["ROUTES"]: 
+          if route in self.server.protected_routes:
+            self.server.protected_routes[route].append(key)
+          else:    
+            self.server.protected_routes[route] = [key]
+      if "REALM" in config:
+        self.server.REALM = config["REALM"]
+      else:
+        self.server.REALM = "Authentication required"   
 
   def serve_forever(self):
     self.server.serve_forever()
@@ -413,11 +410,11 @@ class RPiHTTPServer:
         "ROUTE": { # basic dynamic routing
           "GET": {
             "/": "default_response"
-          },
+            },
           "POST": {
             "/": "default_response",
+            }
           }
-        }
       }
 
 def test(config_file):

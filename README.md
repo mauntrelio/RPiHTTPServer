@@ -14,6 +14,7 @@ ON / OFF a LED via Raspberry GPIO.
 - config in json file
 - optional multithreaded server
 - static file serving with cache
+- Basic authentication (very basic!)
 - POST parsing
 - QS parsing
 - dynamic routing based on configuration or convention
@@ -184,6 +185,7 @@ character-set support is not planned.
 
 ## TODO
 
+- document how basic auth can be configured
 - support for Python 3k
 - handle config file parse error
 - parametric routes
