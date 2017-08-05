@@ -25,7 +25,7 @@ TODOs:
 
 """
 
-__version__ = "0.3.0"
+__version__ = "0.3.1"
 
 __all__ = ["RPiHTTPRequestHandler", "RPiHTTPServer"]
 
@@ -33,7 +33,7 @@ from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
 from SocketServer import ThreadingMixIn
 from calendar import timegm
 from email.utils import parsedate
-from base64 import b64encode
+import base64 as b64
 
 import cgi
 import os
@@ -49,7 +49,7 @@ class RPiHTTPRequestHandler(BaseHTTPRequestHandler):
 
   # class initialization
 
-  server_version = "RPiHTTPServer 0.3.0"
+  server_version = "RPiHTTPServer 0.3.1"
 
   # mimetypes for static files
   if not mimetypes.inited:
@@ -64,6 +64,7 @@ class RPiHTTPRequestHandler(BaseHTTPRequestHandler):
     self.response_status = 200
     self.response_headers = {}
     self.form = {}
+    self.user = None
         
     # init parent class
     BaseHTTPRequestHandler.__init__(self, *args)
@@ -92,6 +93,7 @@ class RPiHTTPRequestHandler(BaseHTTPRequestHandler):
 
     if 'authorization' in self.headers:
       if self.headers['Authorization'] in keys: 
+        self.user = b64.b64decode(self.headers['Authorization']).split(":")[0]
         return True
     
     self.response_status = 401
@@ -379,7 +381,7 @@ class RPiHTTPServer:
   def setup_auth(self, config):
     if "ROLES" in config:
       for role in config["ROLES"]:
-        key = "Basic " + b64encode("%s:%s" % (role["USERNAME"],role["PASSWORD"]))
+        key = "Basic " + b64.b64encode("%s:%s" % (role["USERNAME"],role["PASSWORD"]))
         for route in role["ROUTES"]: 
           if route in self.server.protected_routes:
             self.server.protected_routes[route].append(key)
