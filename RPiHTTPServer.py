@@ -25,7 +25,7 @@ TODOs:
 
 """
 
-__version__ = "0.4.0"
+__version__ = "0.4.1"
 
 __all__ = ["RPiHTTPRequestHandler", "RPiHTTPServer"]
 
@@ -49,7 +49,7 @@ class RPiHTTPRequestHandler(BaseHTTPRequestHandler):
 
   # class initialization
 
-  server_version = "RPiHTTPServer 0.4.0"
+  server_version = "RPiHTTPServer 0.4.1"
 
   # mimetypes for static files
   if not mimetypes.inited:
@@ -169,6 +169,10 @@ class RPiHTTPRequestHandler(BaseHTTPRequestHandler):
         self.pre_serve_response()
       
       self.serve_response()
+
+      # hook to post serve response
+      if hasattr(self, "post_serve_response"):
+        self.post_serve_response()
     
     else:
       self.give_404()
@@ -200,9 +204,15 @@ class RPiHTTPRequestHandler(BaseHTTPRequestHandler):
   def send_error(self, code, message):
     self.response_status = code
     BaseHTTPRequestHandler.send_error(self, code, message)
+    # hook to post serve response
+    if hasattr(self, "post_serve_response"):
+      self.post_serve_response()
 
   def give_404(self,message="Not found"):
     self.send_error(404,message)
+    # hook to post serve response
+    if hasattr(self, "post_serve_response"):
+      self.post_serve_response()
 
   # very basic template rendering: tpl_vars should be a
   # dictionay whose keys are the strings to be replaced
