@@ -25,7 +25,7 @@ TODOs:
 
 """
 
-__version__ = "0.3.1"
+__version__ = "0.3.2"
 
 __all__ = ["RPiHTTPRequestHandler", "RPiHTTPServer"]
 
@@ -49,7 +49,7 @@ class RPiHTTPRequestHandler(BaseHTTPRequestHandler):
 
   # class initialization
 
-  server_version = "RPiHTTPServer 0.3.1"
+  server_version = "RPiHTTPServer 0.3.2"
 
   # mimetypes for static files
   if not mimetypes.inited:
@@ -93,7 +93,7 @@ class RPiHTTPRequestHandler(BaseHTTPRequestHandler):
 
     if 'authorization' in self.headers:
       if self.headers['Authorization'] in keys: 
-        self.user = b64.b64decode(self.headers['Authorization']).split(":")[0]
+        self.user = b64.b64decode(self.headers['Authorization'][6:]).split(":")[0]
         return True
     
     self.response_status = 401
