@@ -25,7 +25,7 @@ TODOs:
 
 """
 
-__version__ = "0.3.2"
+__version__ = "0.4.0"
 
 __all__ = ["RPiHTTPRequestHandler", "RPiHTTPServer"]
 
@@ -49,7 +49,7 @@ class RPiHTTPRequestHandler(BaseHTTPRequestHandler):
 
   # class initialization
 
-  server_version = "RPiHTTPServer 0.3.2"
+  server_version = "RPiHTTPServer 0.4.0"
 
   # mimetypes for static files
   if not mimetypes.inited:
@@ -128,6 +128,9 @@ class RPiHTTPRequestHandler(BaseHTTPRequestHandler):
       else:
         self.serve_static()
     else:
+      # hook to pre_handle request
+      if hasattr(self, "pre_handle_request"):
+        self.pre_handle_request()
       # manage routed requests with controller methods
       self.handle_routed_request()
 
@@ -154,7 +157,16 @@ class RPiHTTPRequestHandler(BaseHTTPRequestHandler):
       # check if route is a protected route 
       call_controller = self.do_AUTH() if self.url.path in self.server.protected_routes else True
       # TODO: improve way to shortcut answer in the controller
-      if call_controller: controller_method()
+      if call_controller: 
+        # hook to pre call controller
+        if hasattr(self, "pre_call_controller"):
+          self.pre_call_controller()
+        # call controller  
+        controller_method()
+
+      # hook to pre serve response
+      if hasattr(self, "pre_serve_response"):
+        self.pre_serve_response()
       
       self.serve_response()
     
