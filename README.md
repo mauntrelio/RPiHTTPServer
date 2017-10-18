@@ -18,6 +18,7 @@ ON / OFF a LED via Raspberry GPIO.
 - POST parsing
 - QS parsing
 - dynamic routing based on configuration or convention
+- hooks methods to perform differente actions before/after serving a request
 
 ## Basic usage:
 
@@ -162,26 +163,29 @@ request
 
 At the current stage the library does not offer support for parametric routes.
 
+#### Hooks
+
+Available hook methods that can be implemented in your extended class:
+
+- `pre_handle_request`: gets executed before handling the HTTP request, that is, before evaluating the route and authentication, but after evaluating GET,  POST method and parameters sent from the client. It doesn't get executed in case of requests to static files.
+- `pre_call_controller`: gets executed after the controller has been established and authentication has been verified, but before calling the actual controller method
+- `pre_serve_response`: gets executed after the controller has been executed but before sending any response content back to the client. It doesn't get executed in case of 404 error, static files or failed authentication. 
+- `post_serve_response`: gets executed after the response has been sent back to the client. It doesn't get executed in case of static files or failed authentication (but it gets for 404 errors).
+
+
 ### HTML templates
 
 The library does only offer a very basic template handling. The method
 `render_template` of the RPiHTTPRequestHandler class expects a filename and a
 dictionary and set the content to a string. It will look for a file with the
 specified filename under the folder `self.config["TEMPLATE_FOLDER"]` (if not
-specified in the config file it will default to a folder named "templates" under
-the directory from which the python script is run). It will then loop the
-dictionary's keys as the strings to be replaced, and the corresponding values as
-the replacements. Finally, it will set the content property to the resulting
-string.
+specified in the config file it will default to a folder named "templates" under the directory from which the python script is run). It will then loop the
+dictionary's keys as the strings to be replaced, and the corresponding values as the replacements. Finally, it will set the `content` property to the resulting string.
 
 This is an extremely simple and inefficient template's handling: there are many
-better libraries out there (e.g. Jinja2, Pystache) if you want a better template
-handling: at the end of the day you have to set the `self.content` variable to
-the string that will be served over HTTP (to serve a default `text/html`
-content-type).
+better libraries out there (e.g. Jinja2, Pystache) if you want a better template handling: at the end of the day you have to set the `self.content` variable to the string that will be served over HTTP (to serve a default `text/html` content-type).
 
-Please note that UTF-8 will be served by default and currently other
-character-set support is not planned.
+Please note that UTF-8 will be served by default and currently other character-set support is not planned.
 
 ## TODO
 

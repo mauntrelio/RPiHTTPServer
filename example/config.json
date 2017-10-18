@@ -6,11 +6,24 @@
   "STATIC_CACHE" : 604800,
   "ROUTE": { 
     "GET": {
-      "/": "default_response"
+      "/": "default_response",
+      "/admin": "admin"
     },
     "POST": {
       "/": "switch"
     }
   },
+  "ROLES":[
+    {
+      "USERNAME": "user",
+      "PASSWORD": "password",
+      "ROUTES": ["/"]
+    },
+    { 
+      "USERNAME": "admin",
+      "PASSWORD": "admin",
+      "ROUTES": ["/admin"]  
+    }
+  ],
   "GPIO_PIN": 5
 }

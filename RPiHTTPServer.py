@@ -25,7 +25,7 @@ TODOs:
 
 """
 
-__version__ = "0.4.1"
+__version__ = "0.4.2"
 
 __all__ = ["RPiHTTPRequestHandler", "RPiHTTPServer"]
 
@@ -49,7 +49,7 @@ class RPiHTTPRequestHandler(BaseHTTPRequestHandler):
 
   # class initialization
 
-  server_version = "RPiHTTPServer 0.4.1"
+  server_version = "RPiHTTPServer 0.4.2"
 
   # mimetypes for static files
   if not mimetypes.inited:
